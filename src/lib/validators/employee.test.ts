@@ -56,4 +56,23 @@ describe("createEmployeeSchema", () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe("email", () => {
+    it("rejects a malformed email", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        email: "not-an-email",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("lower-cases the email for storage", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        email: "Ada@Example.COM",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.email).toBe("ada@example.com");
+    });
+  });
 });
