@@ -102,4 +102,23 @@ describe("createEmployeeSchema", () => {
       if (result.success) expect(result.data.country).toBe("US");
     });
   });
+
+  describe("currencyCode", () => {
+    it("rejects a code that is not 3 letters", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        currencyCode: "US",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("upper-cases a lowercase code", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        currencyCode: "inr",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.currencyCode).toBe("INR");
+    });
+  });
 });
