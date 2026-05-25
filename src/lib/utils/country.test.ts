@@ -13,6 +13,9 @@ describe("countryName", () => {
   });
 
   it("returns the input unchanged for an unknown code", () => {
-    expect(countryName("ZZ")).toBe("ZZ");
+    // 'XX' is one of the codes Intl truly has no name for; 'ZZ' is
+    // actually mapped to 'Unknown Region' on modern Node so we pick
+    // a cleaner unknown.
+    expect(countryName("XX")).toBe("XX");
   });
 });
