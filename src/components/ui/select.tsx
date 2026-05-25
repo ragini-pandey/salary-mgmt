@@ -40,7 +40,7 @@ export const SelectContent = React.forwardRef<
       position="popper"
       sideOffset={4}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-zinc-200 bg-white text-zinc-950 shadow-md",
+        "anim-popover relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-zinc-200 bg-white text-zinc-950 shadow-xl shadow-zinc-900/10",
         className,
       )}
       {...props}
