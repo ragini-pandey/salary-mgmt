@@ -7,7 +7,9 @@ export const createEmployeeSchema = z.object({
     .string()
     .transform((s) => s.trim())
     .pipe(z.string().min(1, "fullName is required").max(200)),
-  email: z.string(),
+  email: z
+    .email("must be a valid email")
+    .transform((s) => s.toLowerCase()),
   jobTitle: z.string(),
   department: z.string().optional(),
   country: z.string(),
