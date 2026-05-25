@@ -1,0 +1,23 @@
+# Local Postgres for development. Tests do NOT use this — they use
+# pglite in-process. This compose file is only for running the Next.js
+# dev server against a real Postgres.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: salary
+      POSTGRES_PASSWORD: salary
+      POSTGRES_DB: salary
+    ports:
+      - "5432:5432"
+    volumes:
+      - salary_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salary"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  salary_pg:
