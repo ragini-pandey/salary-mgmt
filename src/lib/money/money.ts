@@ -28,3 +28,8 @@ export function toMinorUnits(major: number, currency: string): number {
   const factor = 10 ** decimalsFor(currency);
   return Math.round(major * factor);
 }
+
+export function toMajorUnits(minor: number, currency: string): number {
+  const factor = 10 ** decimalsFor(currency);
+  return minor / factor;
+}
