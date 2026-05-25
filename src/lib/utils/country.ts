@@ -4,7 +4,13 @@ let cached: Intl.DisplayNames | undefined;
 
 function displayNames(): Intl.DisplayNames {
   if (!cached) {
-    cached = new Intl.DisplayNames(["en"], { type: "region" });
+    // fallback: 'code' makes Intl.of() return the input when it doesn't
+    // know the region. Without this, modern Node returns
+    // 'Unknown Region', which is worse UX than just showing the code.
+    cached = new Intl.DisplayNames(["en"], {
+      type: "region",
+      fallback: "code",
+    });
   }
   return cached;
 }
