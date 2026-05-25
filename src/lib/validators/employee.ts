@@ -12,7 +12,10 @@ export const createEmployeeSchema = z.object({
     .transform((s) => s.toLowerCase()),
   jobTitle: z.string(),
   department: z.string().optional(),
-  country: z.string(),
+  country: z
+    .string()
+    .regex(/^[A-Za-z]{2}$/, "country must be a 2-letter ISO code")
+    .transform((s) => s.toUpperCase()),
   currencyCode: z.string(),
   salary: z.number(),
   employmentType: z.string(),
