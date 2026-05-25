@@ -5,7 +5,9 @@ import { resetFixtureCounter, seedEmployees } from "../repositories/_fixtures";
 import {
   countriesOverview,
   countryStats,
+  organizationStats,
   titleInCountryStats,
+  topJobTitlesInCountry,
 } from "./insights";
 
 describe("services/insights.countryStats", () => {
@@ -116,5 +118,83 @@ describe("services/insights.countriesOverview", () => {
       expect.objectContaining({ country: "FI", count: 3, avg: 30_000_000 }),
       expect.objectContaining({ country: "US", count: 2, avg: 15_000_000 }),
     ]);
+  });
+});
+
+describe("services/insights.topJobTitlesInCountry", () => {
+  let db: TestDb;
+
+  beforeEach(async () => {
+    db = await createTestDb();
+    resetFixtureCounter();
+    await seedEmployees(db, [
+      { country: "US", jobTitle: "Engineer", salary: 10_000_000 },
+      { country: "US", jobTitle: "Engineer", salary: 12_000_000 },
+      { country: "US", jobTitle: "Engineer", salary: 14_000_000 },
+      { country: "US", jobTitle: "Director", salary: 30_000_000 },
+      { country: "US", jobTitle: "Director", salary: 35_000_000 },
+      { country: "US", jobTitle: "Designer", salary: 9_000_000 },
+      { country: "FI", jobTitle: "Engineer", salary: 9_000_000 },
+    ]);
+  });
+
+  afterEach(async () => {
+    await db.$dispose();
+  });
+
+  it("returns titles within a country, sorted by headcount desc", async () => {
+    const rows = await topJobTitlesInCountry(db, "US");
+    expect(rows.map((r) => r.jobTitle)).toEqual([
+      "Engineer",
+      "Director",
+      "Designer",
+    ]);
+    expect(rows[0].count).toBe(3);
+    expect(rows[0].avg).toBe(12_000_000);
+  });
+
+  it("honors the limit option", async () => {
+    const rows = await topJobTitlesInCountry(db, "US", { limit: 2 });
+    expect(rows).toHaveLength(2);
+  });
+});
+
+describe("services/insights.organizationStats", () => {
+  let db: TestDb;
+
+  beforeEach(async () => {
+    db = await createTestDb();
+    resetFixtureCounter();
+  });
+
+  afterEach(async () => {
+    await db.$dispose();
+  });
+
+  it("returns zeros for an empty org", async () => {
+    const stats = await organizationStats(db);
+    expect(stats).toEqual({
+      totalEmployees: 0,
+      countries: 0,
+      departments: 0,
+      jobTitles: 0,
+    });
+  });
+
+  it("counts distinct dimensions for active employees only", async () => {
+    await seedEmployees(db, [
+      { country: "US", department: "Eng", jobTitle: "SWE" },
+      { country: "US", department: "Eng", jobTitle: "SRE" },
+      { country: "FI", department: "Ops", jobTitle: "SWE" },
+      { country: "FI", department: "Ops", jobTitle: "SWE", status: "terminated" },
+    ]);
+
+    const stats = await organizationStats(db);
+    expect(stats).toEqual({
+      totalEmployees: 3,
+      countries: 2,
+      departments: 2,
+      jobTitles: 2,
+    });
   });
 });
