@@ -29,6 +29,115 @@ units), `employmentType`, `status`, `hireDate`, plus server-generated
 
 ---
 
+## Architecture at a glance
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      Next.js 16 App Router                       │
+│                                                                  │
+│   src/app/(ui)/...        ──►  React Server Components           │
+│       employees/page          read-side rendering                │
+│       insights/page           charts + KPI cards                 │
+│                                                                  │
+│   src/app/api/...         ──►  Route Handlers (HTTP only)        │
+│       employees/route         thin: parse → validate → delegate  │
+│       insights/route                                             │
+└────────────────────────┬─────────────────────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                          src/lib/                                │
+│                                                                  │
+│   validators/        Zod schemas. Sole source of API contract.   │
+│   services/          Business logic. No HTTP, no SQL.            │
+│   repositories/      Drizzle queries. No business rules.         │
+│   db/                Schema, migrations, client factory.         │
+└────────────────────────┬─────────────────────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│   PostgreSQL  (Neon in prod • docker-compose in dev •            │
+│                pglite in-process for tests)                       │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+Layer rules are enforced by convention:
+**API routes never write SQL**, **services never write SQL**,
+**repositories never apply business rules**. Full details in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## Artifacts & design notes
+
+The brief asks for the thinking behind the build, not just the build.
+Five committed documents, each focused on one question a reviewer
+might bring:
+
+### 📘 [`docs/PROCESS.md`](docs/PROCESS.md) — *how the work was sliced*
+
+A narrative companion to `git log`. Explains the bottom-up TDD layer
+cake (helpers → validators → schema → repositories → services → API
+→ UI), why each layer was finished before the next started, and the
+"week two" backlog of things deliberately left out.
+
+> *Sample:* "Building bottom-up paid off twice: when a layer was
+> wrong, the failure showed up in *that* layer's tests, not three
+> layers up; and when the UI work started, every backing function was
+> already known-good."
+
+### 📐 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — *the structure*
+
+Full system diagram, the layer-rule contract, the data model (every
+column, every index, with the reason), and the test ladder (which
+layer proves what).
+
+### 🎯 [`docs/DECISIONS.md`](docs/DECISIONS.md) — *every non-obvious choice*
+
+Seven Architecture Decision Records, each capturing **the choice, the
+alternatives considered, and the trade-off**. Examples:
+
+- **ADR-002:** PostgreSQL with `pglite` for tests — why this choice
+  unlocks fast, deterministic, real-Postgres-semantics tests with
+  zero Docker.
+- **ADR-004:** Salaries as integer minor units in local currency —
+  why not `NUMERIC(12,2)`, why not float, and how this affects
+  cross-country insights.
+- **ADR-005:** TDD with red→green→refactor commits — why the
+  per-commit cost was worth it for this assessment.
+
+### ⚡ [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) — *seed-script benchmarks*
+
+The brief calls out that the seed script's performance matters
+because engineers run it regularly. This doc shows the measurements,
+walks through **what was tried and accepted** (single transaction,
+batched VALUES, TRUNCATE) and, more interestingly, **what was tried
+and rejected** (COPY FROM STDIN, larger batches, parallel
+transactions) — with reasons each was left on the table.
+
+| Rows   | Local Postgres | Remote Neon  |
+| ------ | -------------- | ------------ |
+| 1,000  | ~140 ms        | ~1 s         |
+| 10,000 | ~1.1 s         | ~8.7 s       |
+| 50,000 | ~5.5 s         | ~40 s        |
+
+### 🤖 [`docs/PROMPTS.md`](docs/PROMPTS.md) — *how AI was used*
+
+The working agreement: **humans drive tests and architecture; AI
+fills in implementation against the tests humans wrote.** Lists the
+specific prompts that shaped the design (schema, FX, test strategy),
+the pattern for extracting typed validators, and an explicit
+*"What the AI was NOT used for"* section so the human contribution
+stays visible.
+
+### 🚀 [`docs/DEPLOY.md`](docs/DEPLOY.md) — *Vercel + Neon walkthrough*
+
+Step-by-step deploy guide: create Neon Postgres, import on Vercel,
+set `DATABASE_URL` (pooled URL), apply schema, seed. ~5 minutes
+end-to-end, dashboard only, no CLI tools.
+
+---
+
 ## Run it locally
 
 You need Node 20+ and either Docker (for local Postgres) or a Neon
@@ -46,7 +155,7 @@ cp .env.example .env.local
 #   (the default DATABASE_URL in .env.example matches docker compose)
 
 # 4. apply the schema
-pnpm db:push
+pnpm drizzle-kit migrate
 
 # 5. seed 10,000 employees (takes a second or two)
 pnpm seed
@@ -74,9 +183,9 @@ All tests run in-process — there is no need for a database, Docker, or
 network. The repository, service, and API layer tests use
 [`@electric-sql/pglite`](https://pglite.dev), a WASM build of Postgres
 that boots in single-digit milliseconds. That choice is explained in
-[`docs/DECISIONS.md`](docs/DECISIONS.md#adr-002-postgresql-via-pg-driver-with-pglite-for-tests).
+[ADR-002](docs/DECISIONS.md#adr-002-postgresql-via-pg-driver-with-pglite-for-tests).
 
-You should see something like:
+You should see:
 
 ```
  Test Files  12 passed (12)
@@ -96,6 +205,7 @@ src/
 ├── components/
 │   ├── employees/                  # List, dialog, form, row actions
 │   ├── insights/                   # KPI cards, charts, lookups
+│   ├── layout/                     # Sticky nav with active-route pill
 │   └── ui/                         # Primitives (Button, Dialog, …)
 └── lib/
     ├── api/                        # Pure HTTP handlers (testable)
@@ -109,66 +219,34 @@ src/
 data/                               # first_names.txt, last_names.txt
 drizzle/                            # Generated migrations
 scripts/                            # pnpm seed entry point
-docs/                               # ADRs, architecture, performance, AI usage
+docs/                               # PROCESS, ARCHITECTURE, DECISIONS,
+                                    # PERFORMANCE, PROMPTS, DEPLOY
 ```
 
-Layer rules are enforced by convention (see `docs/ARCHITECTURE.md`):
-**API routes never write SQL**, **services never write SQL**,
-**repositories never apply business rules**.
-
 ---
 
-## Performance: the seed script
+## Tech recap
 
-The brief calls out that the seed script's performance matters because
-engineers will run it regularly. Numbers measured on a M-series Mac
-against local PostgreSQL 16 in Docker:
-
-| Rows   | Duration  | Throughput     |
-| ------ | --------- | -------------- |
-| 1,000  | ~140 ms   | ~7,100 rows/s  |
-| 10,000 | ~1.1 s    | ~9,100 rows/s  |
-| 50,000 | ~5.5 s    | ~9,000 rows/s  |
-
-How: one `TRUNCATE`, one transaction, and batched `INSERT VALUES (…)` of
-500 rows each (well under the 65,535-parameter Postgres limit). See
-[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) for what was tried and what
-didn't make the cut.
-
----
-
-## Tech choices, briefly
-
-- **Next.js 16 App Router** for a single deployable, with RSCs handling
-  the read-heavy pages and Client Components only for forms / interactive
-  widgets. Rationale in
-  [`docs/DECISIONS.md`](docs/DECISIONS.md#adr-001-nextjs-full-stack-over-split-frontendbackend).
-- **PostgreSQL** in dev / prod, **pglite** in tests — same SQL dialect,
-  zero-Docker test runs.
-  [ADR-002](docs/DECISIONS.md#adr-002-postgresql-via-pg-driver-with-pglite-for-tests).
-- **Drizzle ORM** over Prisma so the bulk insert path stays explicit
-  and the generated types are first-class.
-  [ADR-003](docs/DECISIONS.md#adr-003-drizzle-orm-over-prisma).
-- **Integer minor units** for salaries so aggregates don't drift.
-  [ADR-004](docs/DECISIONS.md#adr-004-salaries-stored-as-integer-minor-units-in-local-currency).
-- **Zod** at the API boundary; the same validator types flow into the
-  service layer for the typed `result.kind` discriminated unions.
-- **Radix + Tailwind + Lucide + Recharts** for the UI; no component
-  library (shadcn-style hand-rolled primitives in `components/ui/`).
+- **Next.js 16 App Router** for a single deployable; RSCs for the
+  read-heavy pages, Client Components only where interactivity needs
+  them ([ADR-001](docs/DECISIONS.md#adr-001-nextjs-full-stack-over-split-frontendbackend)).
+- **PostgreSQL** in prod, **pglite** in tests — same SQL dialect,
+  zero-Docker test runs ([ADR-002](docs/DECISIONS.md#adr-002-postgresql-via-pg-driver-with-pglite-for-tests)).
+- **Drizzle ORM** for the data layer; explicit batched inserts in the
+  seed script ([ADR-003](docs/DECISIONS.md#adr-003-drizzle-orm-over-prisma)).
+- **Integer minor units** for salaries so aggregates don't drift
+  ([ADR-004](docs/DECISIONS.md#adr-004-salaries-stored-as-integer-minor-units-in-local-currency)).
+- **Zod** at the API boundary; validator types flow into the service
+  layer for typed `result.kind` discriminated unions.
+- **Radix + Tailwind + Motion + Lucide + Recharts** for the UI; no
+  component library (hand-rolled primitives in `components/ui/`).
 
 ---
 
 ## Deployment
 
-The app deploys to Vercel as a single project; point `DATABASE_URL` at
-a Neon Postgres instance. The route handlers are dynamic (no static
-caching) because the read paths reflect mutable data.
-
----
-
-## Artifacts
-
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — every non-obvious choice
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system diagram, data model, test ladder
-- [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) — seed-script benchmarks & what was tried
-- [`docs/PROMPTS.md`](docs/PROMPTS.md) — how AI was used, and what it was *not* used for
+See [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full Vercel + Neon
+walkthrough. The short version: import the repo on Vercel, set
+`DATABASE_URL` to your Neon **pooled** connection string, deploy,
+then run `pnpm drizzle-kit migrate` and `pnpm seed` from your laptop
+with the same URL exported.
