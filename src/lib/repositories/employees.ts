@@ -1,4 +1,6 @@
-import { eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, sql } from "drizzle-orm";
+
+import type { ListEmployeesQuery } from "../validators/list-query";
 
 import type { AppDb } from "../db/client";
 import type { TestDb } from "../db/test-db";
@@ -57,4 +59,55 @@ export async function remove(db: DbHandle, id: string): Promise<boolean> {
     .where(eq(employees.id, id))
     .returning({ id: employees.id });
   return rows.length > 0;
+}
+
+// Maps the user-facing sort key (also the validator's enum) to the
+// Drizzle column. Centralizing this guarantees only indexed columns
+// are sortable.
+const sortColumn = {
+  fullName: employees.fullName,
+  jobTitle: employees.jobTitle,
+  country: employees.country,
+  salary: employees.salary,
+  hireDate: employees.hireDate,
+} as const;
+
+type Filters = Partial<
+  Pick<ListEmployeesQuery, "q" | "country" | "jobTitle" | "status">
+>;
+
+function buildWhere(f: Filters) {
+  const clauses = [];
+  if (f.q) clauses.push(ilike(employees.fullName, `%${f.q}%`));
+  if (f.country) clauses.push(eq(employees.country, f.country));
+  if (f.jobTitle) clauses.push(eq(employees.jobTitle, f.jobTitle));
+  if (f.status) clauses.push(eq(employees.status, f.status));
+  return clauses.length ? and(...clauses) : undefined;
+}
+
+export async function list(
+  db: DbHandle,
+  query: ListEmployeesQuery,
+): Promise<Employee[]> {
+  const direction = query.sortDir === "desc" ? desc : asc;
+  const column = sortColumn[query.sortBy];
+
+  return await db
+    .select()
+    .from(employees)
+    .where(buildWhere(query))
+    .orderBy(direction(column))
+    .limit(query.pageSize)
+    .offset((query.page - 1) * query.pageSize);
+}
+
+export async function count(
+  db: DbHandle,
+  filters: Filters,
+): Promise<number> {
+  const [row] = await db
+    .select({ value: sql<number>`count(*)::int` })
+    .from(employees)
+    .where(buildWhere(filters));
+  return row?.value ?? 0;
 }
