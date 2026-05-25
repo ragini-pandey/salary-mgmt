@@ -10,8 +10,15 @@ export const createEmployeeSchema = z.object({
   email: z
     .email("must be a valid email")
     .transform((s) => s.toLowerCase()),
-  jobTitle: z.string(),
-  department: z.string().optional(),
+  jobTitle: z
+    .string()
+    .transform((s) => s.trim())
+    .pipe(z.string().min(1, "jobTitle is required").max(200)),
+  department: z
+    .string()
+    .transform((s) => s.trim())
+    .pipe(z.string().max(200))
+    .optional(),
   country: z
     .string()
     .regex(/^[A-Za-z]{2}$/, "country must be a 2-letter ISO code")
