@@ -52,3 +52,11 @@ export const createEmployeeSchema = z.object({
 });
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
+
+export const updateEmployeeSchema = createEmployeeSchema
+  .partial()
+  .refine((obj) => Object.keys(obj).length > 0, {
+    message: "at least one field must be provided",
+  });
+
+export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
