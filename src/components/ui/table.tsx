@@ -46,7 +46,10 @@ export function TableRow({
 }: React.HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={cn("transition-colors hover:bg-zinc-50/60", className)}
+      className={cn(
+        "transition-colors duration-150 hover:bg-indigo-50/40",
+        className,
+      )}
       {...props}
     />
   );

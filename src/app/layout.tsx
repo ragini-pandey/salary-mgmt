@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Users, BarChart3 } from "lucide-react";
 
+import { Nav } from "@/components/layout/nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,29 +15,20 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-950">
-        <header className="border-b border-zinc-200 bg-white">
+      <body className="min-h-full flex flex-col text-zinc-950">
+        <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/70 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded bg-zinc-900 text-xs font-bold text-white">
+            <Link
+              href="/"
+              className="group flex items-center gap-2 font-semibold tracking-tight"
+            >
+              <span className="relative inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md bg-gradient-to-br from-zinc-900 to-zinc-700 text-xs font-bold text-white shadow-sm transition-transform group-hover:scale-105">
+                <span className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/10 to-white/30 opacity-0 transition-opacity group-hover:opacity-100" />
                 S
               </span>
               <span>Salary</span>
             </Link>
-            <nav className="flex items-center gap-1 text-sm">
-              <Link
-                href="/employees"
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-zinc-100"
-              >
-                <Users className="h-4 w-4" /> Employees
-              </Link>
-              <Link
-                href="/insights"
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-zinc-100"
-              >
-                <BarChart3 className="h-4 w-4" /> Insights
-              </Link>
-            </nav>
+            <Nav />
           </div>
         </header>
         <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-8">

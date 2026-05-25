@@ -134,8 +134,12 @@ export function EmployeeTable({ rows, sortBy, sortDir }: Props) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.id}>
+          {rows.map((row, i) => (
+            <TableRow
+              key={row.id}
+              className="row-enter"
+              style={{ animationDelay: `${Math.min(i, 12) * 28}ms` }}
+            >
               <TableCell>
                 <div className="font-medium">{row.fullName}</div>
                 <div className="text-xs text-zinc-500">{row.email}</div>
