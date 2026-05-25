@@ -75,4 +75,31 @@ describe("createEmployeeSchema", () => {
       if (result.success) expect(result.data.email).toBe("ada@example.com");
     });
   });
+
+  describe("country", () => {
+    it("rejects a code that is not 2 letters", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        country: "USA",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects a non-letter code", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        country: "U1",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("upper-cases a lowercase code", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        country: "us",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.country).toBe("US");
+    });
+  });
 });
