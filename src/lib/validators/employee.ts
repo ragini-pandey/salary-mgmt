@@ -3,7 +3,7 @@ import { z } from "zod";
 // Minimal initial schema; subsequent commits tighten each field with
 // rules driven by failing tests.
 export const createEmployeeSchema = z.object({
-  fullName: z.string(),
+  fullName: z.string().min(1, "fullName is required"),
   email: z.string(),
   jobTitle: z.string(),
   department: z.string().optional(),
