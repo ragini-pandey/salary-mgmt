@@ -57,7 +57,7 @@ export async function remove(db: DbHandle, id: string): Promise<boolean> {
   const rows = await db
     .delete(employees)
     .where(eq(employees.id, id))
-    .returning({ id: employees.id });
+    .returning();
   return rows.length > 0;
 }
 

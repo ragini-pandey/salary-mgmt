@@ -41,7 +41,11 @@ const formSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "yyyy-mm-dd"),
 });
 
-export type FormValues = z.infer<typeof formSchema>;
+// react-hook-form binds to the *input* type (what the inputs hand us),
+// which for z.coerce fields is `unknown`/`string`. The output is what
+// we send to the API.
+export type FormValues = z.input<typeof formSchema>;
+export type FormOutput = z.output<typeof formSchema>;
 
 interface Props {
   employee?: Employee;
@@ -82,12 +86,12 @@ export function EmployeeForm({ employee, onDone }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const isEdit = Boolean(employee);
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormValues, unknown, FormOutput>({
     resolver: zodResolver(formSchema),
     defaultValues: defaultValues(employee),
   });
 
-  async function onSubmit(values: FormValues) {
+  async function onSubmit(values: FormOutput) {
     setServerError(null);
     const url = isEdit
       ? `/api/employees/${employee!.id}`
