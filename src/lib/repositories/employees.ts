@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import type { AppDb } from "../db/client";
 import type { TestDb } from "../db/test-db";
@@ -34,4 +34,27 @@ export async function findById(
     .where(eq(employees.id, id))
     .limit(1);
   return row;
+}
+
+export type UpdateEmployeeRow = Partial<CreateEmployeeRow>;
+
+export async function update(
+  db: DbHandle,
+  id: string,
+  patch: UpdateEmployeeRow,
+): Promise<Employee | undefined> {
+  const [row] = await db
+    .update(employees)
+    .set({ ...patch, updatedAt: sql`now()` })
+    .where(eq(employees.id, id))
+    .returning();
+  return row;
+}
+
+export async function remove(db: DbHandle, id: string): Promise<boolean> {
+  const rows = await db
+    .delete(employees)
+    .where(eq(employees.id, id))
+    .returning({ id: employees.id });
+  return rows.length > 0;
 }
