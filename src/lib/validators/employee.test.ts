@@ -121,4 +121,46 @@ describe("createEmployeeSchema", () => {
       if (result.success) expect(result.data.currencyCode).toBe("INR");
     });
   });
+
+  describe("salary", () => {
+    it("rejects a negative value", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        salary: -1,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects zero", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        salary: 0,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects Infinity", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        salary: Number.POSITIVE_INFINITY,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects NaN", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        salary: Number.NaN,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects implausibly large values (> 1e10 major units)", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        salary: 1e11,
+      });
+      expect(result.success).toBe(false);
+    });
+  });
 });
