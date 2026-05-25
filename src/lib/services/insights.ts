@@ -117,3 +117,68 @@ export async function countriesOverview(
     currencyCode: r.currencyCode,
   }));
 }
+
+export interface JobTitleSliceRow {
+  jobTitle: string;
+  count: number;
+  avg: number;
+  min: number;
+  max: number;
+}
+
+export async function topJobTitlesInCountry(
+  db: DbHandle,
+  country: string,
+  options: { limit?: number } = {},
+): Promise<JobTitleSliceRow[]> {
+  const rows = await db
+    .select({
+      jobTitle: employees.jobTitle,
+      count: sql<number>`count(*)::int`,
+      avg: sql<number>`round(avg(${employees.salary}))::bigint`,
+      min: sql<number>`min(${employees.salary})::bigint`,
+      max: sql<number>`max(${employees.salary})::bigint`,
+    })
+    .from(employees)
+    .where(and(eq(employees.country, country), ACTIVE))
+    .groupBy(employees.jobTitle)
+    .orderBy(desc(sql`count(*)`))
+    .limit(options.limit ?? 10);
+
+  return rows.map((r) => ({
+    jobTitle: r.jobTitle,
+    count: Number(r.count),
+    avg: Number(r.avg),
+    min: Number(r.min),
+    max: Number(r.max),
+  }));
+}
+
+export interface OrganizationStats {
+  totalEmployees: number;
+  countries: number;
+  departments: number;
+  jobTitles: number;
+}
+
+export async function organizationStats(
+  db: DbHandle,
+): Promise<OrganizationStats> {
+  const [row] = await db
+    .select({
+      totalEmployees: sql<number>`count(*)::int`,
+      countries: sql<number>`count(distinct ${employees.country})::int`,
+      // department is nullable; count(distinct) ignores NULLs naturally.
+      departments: sql<number>`count(distinct ${employees.department})::int`,
+      jobTitles: sql<number>`count(distinct ${employees.jobTitle})::int`,
+    })
+    .from(employees)
+    .where(ACTIVE);
+
+  return {
+    totalEmployees: Number(row?.totalEmployees ?? 0),
+    countries: Number(row?.countries ?? 0),
+    departments: Number(row?.departments ?? 0),
+    jobTitles: Number(row?.jobTitles ?? 0),
+  };
+}
