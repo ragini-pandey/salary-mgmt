@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 import type { DbHandle } from "../repositories/employees";
 import { employees } from "../db/schema";
@@ -44,4 +44,76 @@ export async function countryStats(
     avg: row?.avg != null ? Number(row.avg) : null,
     currencyCode: row?.currencyCode ?? null,
   };
+}
+
+export interface TitleInCountryStats {
+  count: number;
+  min: number | null;
+  max: number | null;
+  avg: number | null;
+}
+
+export async function titleInCountryStats(
+  db: DbHandle,
+  country: string,
+  jobTitle: string,
+): Promise<TitleInCountryStats> {
+  const [row] = await db
+    .select({
+      count: sql<number>`count(*)::int`,
+      min: sql<number | null>`min(${employees.salary})::bigint`,
+      max: sql<number | null>`max(${employees.salary})::bigint`,
+      avg: sql<number | null>`round(avg(${employees.salary}))::bigint`,
+    })
+    .from(employees)
+    .where(
+      and(
+        eq(employees.country, country),
+        eq(employees.jobTitle, jobTitle),
+        ACTIVE,
+      ),
+    );
+
+  return {
+    count: Number(row?.count ?? 0),
+    min: row?.min != null ? Number(row.min) : null,
+    max: row?.max != null ? Number(row.max) : null,
+    avg: row?.avg != null ? Number(row.avg) : null,
+  };
+}
+
+export interface CountryOverviewRow {
+  country: string;
+  count: number;
+  avg: number;
+  min: number;
+  max: number;
+  currencyCode: string;
+}
+
+export async function countriesOverview(
+  db: DbHandle,
+): Promise<CountryOverviewRow[]> {
+  const rows = await db
+    .select({
+      country: employees.country,
+      count: sql<number>`count(*)::int`,
+      avg: sql<number>`round(avg(${employees.salary}))::bigint`,
+      min: sql<number>`min(${employees.salary})::bigint`,
+      max: sql<number>`max(${employees.salary})::bigint`,
+      currencyCode: sql<string>`max(${employees.currencyCode})`,
+    })
+    .from(employees)
+    .where(ACTIVE)
+    .groupBy(employees.country)
+    .orderBy(desc(sql`count(*)`));
+
+  return rows.map((r) => ({
+    country: r.country,
+    count: Number(r.count),
+    avg: Number(r.avg),
+    min: Number(r.min),
+    max: Number(r.max),
+    currencyCode: r.currencyCode,
+  }));
 }
