@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestDb, type TestDb } from "../db/test-db";
-import { create, findById } from "./employees";
+import { create, findById, remove, update } from "./employees";
 
 const validEmployee = {
   employeeCode: "E00001",
@@ -63,5 +63,71 @@ describe("repositories/employees.findById", () => {
       "00000000-0000-4000-8000-000000000000",
     );
     expect(found).toBeUndefined();
+  });
+});
+
+describe("repositories/employees.update", () => {
+  let db: TestDb;
+
+  beforeEach(async () => {
+    db = await createTestDb();
+  });
+
+  afterEach(async () => {
+    await db.$dispose();
+  });
+
+  it("changes only the fields in the patch and returns the new row", async () => {
+    const inserted = await create(db, validEmployee);
+    const before = inserted.updatedAt.getTime();
+
+    // Ensure the timestamp comparison cannot be a false positive at
+    // sub-millisecond clock resolution.
+    await new Promise((r) => setTimeout(r, 5));
+
+    const updated = await update(db, inserted.id, {
+      jobTitle: "Tech Lead",
+      salary: 20_000_000,
+    });
+
+    expect(updated?.jobTitle).toBe("Tech Lead");
+    expect(updated?.salary).toBe(20_000_000);
+    // Untouched fields stay put.
+    expect(updated?.fullName).toBe("Ada Lovelace");
+    // updatedAt is refreshed.
+    expect(updated?.updatedAt.getTime()).toBeGreaterThan(before);
+  });
+
+  it("returns undefined when the id does not exist", async () => {
+    const updated = await update(
+      db,
+      "00000000-0000-4000-8000-000000000000",
+      { jobTitle: "X" },
+    );
+    expect(updated).toBeUndefined();
+  });
+});
+
+describe("repositories/employees.remove", () => {
+  let db: TestDb;
+
+  beforeEach(async () => {
+    db = await createTestDb();
+  });
+
+  afterEach(async () => {
+    await db.$dispose();
+  });
+
+  it("returns true and the row is gone", async () => {
+    const inserted = await create(db, validEmployee);
+    const ok = await remove(db, inserted.id);
+    expect(ok).toBe(true);
+    expect(await findById(db, inserted.id)).toBeUndefined();
+  });
+
+  it("returns false when nothing was removed", async () => {
+    const ok = await remove(db, "00000000-0000-4000-8000-000000000000");
+    expect(ok).toBe(false);
   });
 });
