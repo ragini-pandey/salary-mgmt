@@ -20,7 +20,14 @@ export const createEmployeeSchema = z.object({
     .string()
     .regex(/^[A-Za-z]{3}$/, "currencyCode must be a 3-letter ISO code")
     .transform((s) => s.toUpperCase()),
-  salary: z.number(),
+  // Salary is given in MAJOR units (e.g. 150000 = USD 150,000 / yen 150,000).
+  // 1e10 is a generous upper bound that catches accidental decimal-shift
+  // bugs without rejecting any plausible real-world compensation.
+  salary: z
+    .number()
+    .finite("salary must be finite")
+    .positive("salary must be positive")
+    .max(1e10, "salary exceeds maximum permitted value"),
   employmentType: z.string(),
   status: z.string(),
   hireDate: z.string(),
