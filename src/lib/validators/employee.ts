@@ -30,7 +30,18 @@ export const createEmployeeSchema = z.object({
     .max(1e10, "salary exceeds maximum permitted value"),
   employmentType: z.string(),
   status: z.string(),
-  hireDate: z.string(),
+  // ISO yyyy-mm-dd. We parse to verify the calendar date is real
+  // (Date accepts "2020-02-30" by overflowing into March, so we
+  // also assert the round-trip matches the input).
+  hireDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "hireDate must be ISO yyyy-mm-dd")
+    .refine((s) => {
+      const d = new Date(`${s}T00:00:00Z`);
+      return (
+        !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
+      );
+    }, "hireDate is not a real calendar date"),
 });
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
