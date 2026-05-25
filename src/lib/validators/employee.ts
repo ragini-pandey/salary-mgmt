@@ -28,8 +28,8 @@ export const createEmployeeSchema = z.object({
     .finite("salary must be finite")
     .positive("salary must be positive")
     .max(1e10, "salary exceeds maximum permitted value"),
-  employmentType: z.string(),
-  status: z.string(),
+  employmentType: z.enum(["full_time", "part_time", "contract"]),
+  status: z.enum(["active", "on_leave", "terminated"]),
   // ISO yyyy-mm-dd. We parse to verify the calendar date is real
   // (Date accepts "2020-02-30" by overflowing into March, so we
   // also assert the round-trip matches the input).
