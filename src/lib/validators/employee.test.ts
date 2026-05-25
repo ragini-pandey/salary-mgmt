@@ -21,4 +21,14 @@ describe("createEmployeeSchema", () => {
     const result = createEmployeeSchema.safeParse(validInput);
     expect(result.success).toBe(true);
   });
+
+  describe("fullName", () => {
+    it("rejects an empty string", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        fullName: "",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
 });
