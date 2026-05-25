@@ -1,15 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #0a0a0a;
+  --background: #fafaf9;
+  --background-gradient: radial-gradient(
+      ellipse 80% 60% at 50% -20%,
+      rgba(99, 102, 241, 0.08),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 100% 0%,
+      rgba(244, 114, 182, 0.05),
+      transparent 50%
+    );
+  --foreground: #09090b;
   --muted: #f4f4f5;
   --muted-foreground: #71717a;
   --border: #e4e4e7;
+  --border-strong: #d4d4d8;
   --primary: #18181b;
   --primary-foreground: #fafafa;
   --accent: #f4f4f5;
   --destructive: #dc2626;
+  --ring: #18181b;
 }
 
 @theme inline {
@@ -22,12 +34,146 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-destructive: var(--destructive);
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 body {
   background: var(--background);
+  background-image: var(--background-gradient);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1,
+    "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrolling for in-page navigation. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Subtle border treatment so cards feel a touch more premium without
+   relying on heavy shadows. */
+.surface {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Animations for Radix data-state attributes. Components opt in via
+   data-[state=open]:animate-in / data-[state=closed]:animate-out etc. */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+}
+
+@keyframes slideUpAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Utility classes targeting Radix's data-state attributes. */
+[data-state="open"].anim-overlay {
+  animation: fadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-state="closed"].anim-overlay {
+  animation: fadeOut 140ms ease-out;
+}
+[data-state="open"].anim-content {
+  animation: scaleIn 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-state="closed"].anim-content {
+  animation: scaleOut 140ms ease-out;
+}
+[data-state="open"].anim-popover {
+  animation: slideUpAndFade 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Smooth focus ring for everything interactive. */
+*:focus-visible {
+  outline: none;
+}
+
+/* Selection looks better with a hint of brand color. */
+::selection {
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--foreground);
+}
+
+/* Subtle row enter animation for tables. */
+@keyframes rowFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.row-enter {
+  animation: rowFadeIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
