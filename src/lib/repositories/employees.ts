@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+
 import type { AppDb } from "../db/client";
 import type { TestDb } from "../db/test-db";
 import { employees, type Employee, type NewEmployee } from "../db/schema";
@@ -19,5 +21,17 @@ export async function create(
   input: CreateEmployeeRow,
 ): Promise<Employee> {
   const [row] = await db.insert(employees).values(input).returning();
+  return row;
+}
+
+export async function findById(
+  db: DbHandle,
+  id: string,
+): Promise<Employee | undefined> {
+  const [row] = await db
+    .select()
+    .from(employees)
+    .where(eq(employees.id, id))
+    .limit(1);
   return row;
 }
