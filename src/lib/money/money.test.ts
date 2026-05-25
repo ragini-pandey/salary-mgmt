@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toMajorUnits, toMinorUnits } from "./money";
+import { formatMoney, toMajorUnits, toMinorUnits } from "./money";
 
 describe("toMinorUnits", () => {
   it("converts a USD major amount to cents", () => {
@@ -34,5 +34,21 @@ describe("toMajorUnits", () => {
         amount,
       );
     }
+  });
+});
+
+describe("formatMoney", () => {
+  it("formats USD cents as a localized USD string with two decimals", () => {
+    expect(formatMoney(12_345_67, "USD", "en-US")).toBe("$12,345.67");
+  });
+
+  it("formats yen with no decimals", () => {
+    expect(formatMoney(150_000, "JPY", "en-US")).toBe("¥150,000");
+  });
+
+  it("falls back to ISO code when the locale cannot render a symbol", () => {
+    // 'en-US' renders most currencies as a code if no symbol is known.
+    // Picking a real but uncommon currency keeps this deterministic.
+    expect(formatMoney(100_00, "XAF", "en-US")).toContain("XAF");
   });
 });
