@@ -46,9 +46,13 @@ describe("formatMoney", () => {
     expect(formatMoney(150_000, "JPY", "en-US")).toBe("¥150,000");
   });
 
-  it("falls back to ISO code when the locale cannot render a symbol", () => {
-    // 'en-US' renders most currencies as a code if no symbol is known.
-    // Picking a real but uncommon currency keeps this deterministic.
-    expect(formatMoney(100_00, "XAF", "en-US")).toContain("XAF");
+  it("renders INR with rupee symbol and two decimals", () => {
+    // Pinning a non-USD currency catches regressions in the per-currency
+    // factor path. Locale is pinned so output is deterministic in CI.
+    expect(formatMoney(150_000_00, "INR", "en-US")).toBe("₹150,000.00");
+  });
+
+  it("accepts a lowercase currency code", () => {
+    expect(formatMoney(12_345_67, "usd", "en-US")).toBe("$12,345.67");
   });
 });

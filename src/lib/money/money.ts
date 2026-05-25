@@ -33,3 +33,17 @@ export function toMajorUnits(minor: number, currency: string): number {
   const factor = 10 ** decimalsFor(currency);
   return minor / factor;
 }
+
+export function formatMoney(
+  minor: number,
+  currency: string,
+  locale = "en-US",
+): string {
+  const decimals = decimalsFor(currency);
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(toMajorUnits(minor, currency));
+}
