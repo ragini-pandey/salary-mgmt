@@ -163,4 +163,108 @@ describe("createEmployeeSchema", () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe("hireDate", () => {
+    it("rejects a non-ISO date string", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        hireDate: "yesterday",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects an impossible calendar date", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        hireDate: "2020-02-30",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts an ISO yyyy-mm-dd date", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        hireDate: "2020-01-15",
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("employmentType", () => {
+    it("rejects an unknown employment type", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        employmentType: "freelance",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it.each(["full_time", "part_time", "contract"])(
+      "accepts %s",
+      (employmentType) => {
+        const result = createEmployeeSchema.safeParse({
+          ...validInput,
+          employmentType,
+        });
+        expect(result.success).toBe(true);
+      },
+    );
+  });
+
+  describe("status", () => {
+    it("rejects an unknown status", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        status: "fired",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it.each(["active", "on_leave", "terminated"])(
+      "accepts %s",
+      (status) => {
+        const result = createEmployeeSchema.safeParse({
+          ...validInput,
+          status,
+        });
+        expect(result.success).toBe(true);
+      },
+    );
+  });
+
+  describe("jobTitle", () => {
+    it("rejects an empty job title", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        jobTitle: "   ",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("trims surrounding whitespace", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        jobTitle: "  Engineer  ",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.jobTitle).toBe("Engineer");
+    });
+  });
+
+  describe("department", () => {
+    it("is optional", () => {
+      const { department: _omitted, ...rest } = validInput;
+      const result = createEmployeeSchema.safeParse(rest);
+      expect(result.success).toBe(true);
+    });
+
+    it("trims surrounding whitespace when provided", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        department: "  Platform  ",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.department).toBe("Platform");
+    });
+  });
 });
