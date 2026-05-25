@@ -153,6 +153,8 @@ describe("services/employees.listEmployees", () => {
 
   it("returns rows + a total count + the page metadata", async () => {
     const result = await listEmployees(db, { country: "US", pageSize: 1 });
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") return;
     expect(result.rows).toHaveLength(1);
     expect(result.total).toBe(2);
     expect(result.page).toBe(1);
