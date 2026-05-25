@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmployeeSchema } from "./employee";
+import { createEmployeeSchema, updateEmployeeSchema } from "./employee";
 
 // A baseline valid input. Each test below mutates one field to isolate
 // the rule under test, which keeps failures point-to-the-bug obvious.
@@ -266,5 +266,34 @@ describe("createEmployeeSchema", () => {
       expect(result.success).toBe(true);
       if (result.success) expect(result.data.department).toBe("Platform");
     });
+  });
+});
+
+describe("updateEmployeeSchema", () => {
+  it("accepts a partial payload with just one field", () => {
+    const result = updateEmployeeSchema.safeParse({ jobTitle: "Tech Lead" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty payload (must update at least one field)", () => {
+    const result = updateEmployeeSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+
+  it("still enforces field-level rules on any field present", () => {
+    const result = updateEmployeeSchema.safeParse({ email: "nope" });
+    expect(result.success).toBe(false);
+  });
+
+  it("still trims and uppercases like the create schema", () => {
+    const result = updateEmployeeSchema.safeParse({
+      jobTitle: "  CTO  ",
+      country: "in",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.jobTitle).toBe("CTO");
+      expect(result.data.country).toBe("IN");
+    }
   });
 });
