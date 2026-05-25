@@ -30,5 +30,30 @@ describe("createEmployeeSchema", () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it("trims surrounding whitespace", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        fullName: "  Ada Lovelace  ",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.fullName).toBe("Ada Lovelace");
+    });
+
+    it("rejects a whitespace-only string after trimming", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        fullName: "    ",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects names longer than 200 characters", () => {
+      const result = createEmployeeSchema.safeParse({
+        ...validInput,
+        fullName: "a".repeat(201),
+      });
+      expect(result.success).toBe(false);
+    });
   });
 });
